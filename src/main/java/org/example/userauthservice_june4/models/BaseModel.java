@@ -24,5 +24,4 @@ public abstract class BaseModel {
     private String createdBy;
 
     private State state;
-
 }
