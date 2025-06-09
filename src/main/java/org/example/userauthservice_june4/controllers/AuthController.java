@@ -16,12 +16,8 @@ import org.springframework.web.service.annotation.GetExchange;
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
-
     @Autowired
     private IAuthService authService;
-
-    //signup
-    //login
 
     @PostMapping("/signup")
     public UserDto signup(@RequestBody SignupRequestDto signupRequestDto) {
@@ -35,18 +31,21 @@ public class AuthController {
       return new ResponseEntity<>(token.getValue(), HttpStatus.OK);
     }
 
-
     @GetMapping("/validate/{tokenValue}")
-    public void validateToken(@PathVariable String tokenValue) {
+    public UserDto validateToken(@PathVariable String tokenValue) {
+        User user = authService.validateToken(tokenValue);
+        return from(user);
     }
 
     private UserDto from(User user) {
+        if (user == null) {
+            return null;
+        }
+
         UserDto userDto = new UserDto();
         userDto.setName(user.getName());
         userDto.setId(user.getId());
         userDto.setEmail(user.getEmail());
         return userDto;
     }
-
-
 }

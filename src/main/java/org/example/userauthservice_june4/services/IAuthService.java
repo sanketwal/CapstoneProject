@@ -10,4 +10,6 @@ public interface IAuthService {
                 String phoneNumber);
 
     Token login(String email, String password);
+
+    User validateToken(String token);
 }
