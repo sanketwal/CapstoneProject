@@ -17,7 +17,7 @@ public class User extends BaseModel {
     private String email;
     private String password;
     private String phoneNumber;
-    @ManyToMany(cascade = CascadeType.ALL)
+    @ManyToMany(fetch = jakarta.persistence.FetchType.EAGER)
     private List<Role> roles;
 }
 

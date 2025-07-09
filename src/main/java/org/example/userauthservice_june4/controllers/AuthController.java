@@ -1,7 +1,7 @@
 package org.example.userauthservice_june4.controllers;
 
-import org.antlr.v4.runtime.misc.Pair;
 import org.example.userauthservice_june4.dtos.LoginRequestDto;
+import org.example.userauthservice_june4.dtos.LogoutRequestDto;
 import org.example.userauthservice_june4.dtos.SignupRequestDto;
 import org.example.userauthservice_june4.dtos.UserDto;
 import org.example.userauthservice_june4.models.Token;
@@ -11,7 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.service.annotation.GetExchange;
 
 @RestController
 @RequestMapping("/auth")
@@ -21,7 +20,12 @@ public class AuthController {
 
     @PostMapping("/signup")
     public UserDto signup(@RequestBody SignupRequestDto signupRequestDto) {
-       User user = authService.signup(signupRequestDto.getName(), signupRequestDto.getEmail(), signupRequestDto.getPassword(), signupRequestDto.getPhoneNumber());
+       User user = authService.signup(
+               signupRequestDto.getName(),
+               signupRequestDto.getEmail(),
+               signupRequestDto.getPassword(),
+               signupRequestDto.getPhoneNumber()
+       );
        return from(user);
     }
 
@@ -31,9 +35,20 @@ public class AuthController {
       return new ResponseEntity<>(token.getValue(), HttpStatus.OK);
     }
 
-    @GetMapping("/validate/{tokenValue}")
-    public UserDto validateToken(@PathVariable String tokenValue) {
-        User user = authService.validateToken(tokenValue);
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@RequestBody LogoutRequestDto request) {
+        // Call the logout method in the service layer to invalidate the token
+        authService.logout(request.getToken());
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PostMapping("/validate")
+    public UserDto validateToken(@RequestHeader("Authorization") String token) {
+        // Remove "Bearer " prefix if present
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+        User user = authService.validateToken(token);
         return from(user);
     }
 

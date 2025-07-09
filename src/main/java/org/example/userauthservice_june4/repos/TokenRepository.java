@@ -14,4 +14,5 @@ public interface TokenRepository extends JpaRepository<Token, Long> {
 
     //select * from token where value = ?  and expiresAt > now()
     Optional<Token> findByValueAndExpiresAtAfter(String tokenValue, Date currentDate);
+
 }

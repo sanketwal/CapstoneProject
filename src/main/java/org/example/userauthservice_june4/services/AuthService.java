@@ -12,8 +12,12 @@ import org.example.userauthservice_june4.repos.TokenRepository;
 import org.example.userauthservice_june4.repos.UserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Optional;
@@ -24,7 +28,7 @@ public class AuthService implements IAuthService {
     private UserRepo userRepo;
 
     @Autowired
-    private BCryptPasswordEncoder bCryptPasswordEncoder;
+    private PasswordEncoder bCryptPasswordEncoder;
 
     @Autowired
     private TokenRepository tokenRepository;
@@ -57,17 +61,27 @@ public class AuthService implements IAuthService {
         }
 
         //Create a token and store it in Tokens table.
-        Token token = new Token();
-        token.setUser(userOptional.get());
-        token.setValue(RandomStringUtils.randomAlphanumeric(128));
-
-        Calendar calendar = Calendar.getInstance();
-        calendar.add(Calendar.DAY_OF_MONTH, 30);
-        Date dateAfter30Days = calendar.getTime();
-
-        token.setExpiresAt(dateAfter30Days);
+        Token token = getToken(userOptional.get());
 
         return tokenRepository.save(token);
+    }
+
+    @Override
+    public void logout(String token) {
+        // Find the token in the database where it has not been deleted
+        Optional<Token> token1 = tokenRepository.findByValueAndExpiresAtAfter(token, new Date());
+
+        // If the token does not exist or is already deleted, do nothing or throw an exception
+        if (token1.isEmpty()) {
+            return;
+        }
+
+        // Mark the token as deleted
+        Token tkn = token1.get();
+        tkn.setExpiresAt(new Date());
+
+        // Save the updated token back to the repository
+        tokenRepository.save(tkn);
     }
 
     @Override
@@ -76,11 +90,27 @@ public class AuthService implements IAuthService {
         Optional<Token> optionalToken = tokenRepository.
                 findByValueAndExpiresAtAfter(tokenValue, new Date());
 
-        if (optionalToken.isEmpty()) {
-            //Token is not valid or expired
-            return null;
-        }
+        //Token is not valid or expired
+        return optionalToken.map(Token::getUser).orElse(null);
 
-        return optionalToken.get().getUser();
+    }
+
+    private static Token getToken(User user) {
+        // Set the token expiration date to 30 days from the current date
+        LocalDate today = LocalDate.now();
+        LocalDate thirtyDaysLater = today.plus(30, ChronoUnit.DAYS);
+
+        // Convert LocalDate to Date
+        Date expiryDate = Date.from(thirtyDaysLater.atStartOfDay(ZoneId.systemDefault()).toInstant());
+
+        // Create a new Token object
+        Token token = new Token();
+        token.setUser(user);
+        token.setExpiresAt(expiryDate);
+
+        // Generate a random alphanumeric token value
+        token.setValue(RandomStringUtils.randomAlphanumeric(128));
+
+        return token;
     }
 }
