@@ -1,7 +1,10 @@
 package org.example.userauthservice_june4.services;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.antlr.v4.runtime.misc.Pair;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.example.userauthservice_june4.dtos.SendEmailEventDto;
 import org.example.userauthservice_june4.exceptions.InvalidTokenException;
 import org.example.userauthservice_june4.exceptions.PasswordMismatchException;
 import org.example.userauthservice_june4.exceptions.UserAlreadyExistException;
@@ -11,6 +14,7 @@ import org.example.userauthservice_june4.models.User;
 import org.example.userauthservice_june4.repos.TokenRepository;
 import org.example.userauthservice_june4.repos.UserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -24,18 +28,28 @@ import java.util.Optional;
 
 @Service
 public class AuthService implements IAuthService {
-    @Autowired
     private UserRepo userRepo;
-
-    @Autowired
     private PasswordEncoder bCryptPasswordEncoder;
-
-    @Autowired
     private TokenRepository tokenRepository;
+    private KafkaTemplate<String, String> kafkaTemplate;
+    private ObjectMapper objectMapper;
+
+    public AuthService(UserRepo userRepository,
+                        TokenRepository tokenRepository,
+                        BCryptPasswordEncoder bCryptPasswordEncoder,
+                        KafkaTemplate kafkaTemplate,
+                        ObjectMapper objectMapper)
+        {
+            this.userRepo = userRepository;
+            this.tokenRepository = tokenRepository;
+            this.bCryptPasswordEncoder = bCryptPasswordEncoder;
+            this.kafkaTemplate = kafkaTemplate;
+            this.objectMapper = objectMapper;
+        }
 
     public User signup(String name, String email,
                        String password,
-                       String phoneNumber) {
+                       String phoneNumber) throws JsonProcessingException {
 
        Optional<User> userOptional = userRepo.findByEmailEquals(email);
        if(userOptional.isPresent()) {
@@ -47,6 +61,13 @@ public class AuthService implements IAuthService {
        user.setPassword(bCryptPasswordEncoder.encode(password));
        user.setName(name);
        user.setPhoneNumber(phoneNumber);
+
+        SendEmailEventDto sendEmailEventDto = new SendEmailEventDto();
+        sendEmailEventDto.setEmail(email);
+        sendEmailEventDto.setSubject("Welcome to User Auth Service");
+        sendEmailEventDto.setBody("Welcome to User Auth Service");
+
+//       kafkaTemplate.send("sendEmailEvent", objectMapper.writeValueAsString(sendEmailEventDto));
        return userRepo.save(user);
     }
 

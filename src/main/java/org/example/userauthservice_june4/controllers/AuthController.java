@@ -1,5 +1,6 @@
 package org.example.userauthservice_june4.controllers;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.example.userauthservice_june4.dtos.LoginRequestDto;
 import org.example.userauthservice_june4.dtos.LogoutRequestDto;
 import org.example.userauthservice_june4.dtos.SignupRequestDto;
@@ -19,7 +20,7 @@ public class AuthController {
     private IAuthService authService;
 
     @PostMapping("/signup")
-    public UserDto signup(@RequestBody SignupRequestDto signupRequestDto) {
+    public UserDto signup(@RequestBody SignupRequestDto signupRequestDto) throws JsonProcessingException {
        User user = authService.signup(
                signupRequestDto.getName(),
                signupRequestDto.getEmail(),
